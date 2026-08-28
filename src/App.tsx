@@ -11,6 +11,7 @@ import LoginPage from "./pages/LoginPage";
 import { useAuthStore } from "./store/authStore";
 import TicketsPage from "./pages/TicketsPage";
 import TicketDetailPage from "./pages/TicketDetailPage";
+import UsersPage from "./pages/UsersPage";
 
 function App() {
   const token = useAuthStore(
@@ -61,14 +62,10 @@ function App() {
       }
     />
 
-    <Route
-      path="/users"
-      element={
-        <div className="p-6">
-          Users
-        </div>
-      }
-    />
+<Route
+  path="/users"
+  element={<UsersPage />}
+/>
 
     <Route
       path="/analytics"
