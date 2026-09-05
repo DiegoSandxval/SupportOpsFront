@@ -17,6 +17,10 @@ interface AuthState {
     user: AuthUser
   ) => void;
 
+  updateUser: (
+    updates: Partial<AuthUser>
+  ) => void;
+
   logout: () => void;
 }
 
@@ -59,6 +63,28 @@ export const useAuthStore =
       set({
         token,
         user,
+      });
+    },
+
+    updateUser: (updates) => {
+      set((state) => {
+        if (!state.user) {
+          return {};
+        }
+
+        const updatedUser = {
+          ...state.user,
+          ...updates,
+        };
+
+        localStorage.setItem(
+          "supportops_user",
+          JSON.stringify(updatedUser)
+        );
+
+        return {
+          user: updatedUser,
+        };
       });
     },
 

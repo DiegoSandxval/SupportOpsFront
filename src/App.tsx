@@ -6,12 +6,15 @@ import {
 
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
+
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
-import { useAuthStore } from "./store/authStore";
 import TicketsPage from "./pages/TicketsPage";
 import TicketDetailPage from "./pages/TicketDetailPage";
 import UsersPage from "./pages/UsersPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import { useAuthStore } from "./store/authStore";
+import ProfilePage from "./pages/ProfilePage";
 
 function App() {
   const token = useAuthStore(
@@ -20,6 +23,7 @@ function App() {
 
   return (
     <Routes>
+
       {/* PUBLIC */}
       <Route
         path="/login"
@@ -36,58 +40,71 @@ function App() {
       />
 
       {/* PROTECTED */}
-<Route element={<ProtectedRoute />}>
-  <Route element={<AppLayout />}>
-    <Route
-      path="/"
-      element={<DashboardPage />}
-    />
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppLayout />}>
 
-    <Route
-      path="/tickets"
-      element={<TicketsPage />}
-    />
+          {/* DASHBOARD */}
+          <Route
+            path="/"
+            element={<DashboardPage />}
+          />
 
-    <Route
-      path="/tickets/:id"
-      element={<TicketDetailPage />}
-    />
+          {/* ALL TICKETS */}
+          <Route
+            path="/tickets"
+            element={
+              <TicketsPage scope="all" />
+            }
+          />
 
-    <Route
-      path="/my-tickets"
-      element={
-        <div className="p-6">
-          My Tickets
-        </div>
-      }
-    />
+          {/* MY TICKETS */}
+          <Route
+            path="/my-tickets"
+            element={
+              <TicketsPage scope="mine" />
+            }
+          />
 
-<Route
-  path="/users"
-  element={<UsersPage />}
-/>
+          {/* TICKET DETAIL */}
+          <Route
+            path="/tickets/:id"
+            element={<TicketDetailPage />}
+          />
 
-    <Route
-      path="/analytics"
-      element={
-        <div className="p-6">
-          Analytics
-        </div>
-      }
-    />
-  </Route>
-</Route>
+          {/* USERS */}
+          <Route
+            path="/users"
+            element={<UsersPage />}
+          />
+
+          {/* ANALYTICS */}
+          <Route
+            path="/analytics"
+            element={<AnalyticsPage />}
+          />
+        {/* PROFILE */}
+        <Route
+          path="/profile"
+          element={<ProfilePage />}
+        />
+        </Route>
+      </Route>
 
       {/* FALLBACK */}
       <Route
         path="*"
         element={
           <Navigate
-            to={token ? "/" : "/login"}
+            to={
+              token
+                ? "/"
+                : "/login"
+            }
             replace
           />
         }
       />
+
     </Routes>
   );
 }

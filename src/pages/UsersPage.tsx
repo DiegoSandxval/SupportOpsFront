@@ -1,4 +1,5 @@
 import {
+  Plus,
   Search,
   ShieldCheck,
   UserCheck,
@@ -12,6 +13,9 @@ import {
 } from "react";
 
 import { apiClient } from "../api/apiClient";
+import CreateUserModal from "../components/users/CreateUserModal";
+import { useAuthStore } from "../store/authStore";
+
 import type {
   UserListItem,
   UserRole,
@@ -38,35 +42,50 @@ export default function UsersPage() {
       "All" | "Active" | "Inactive"
     >("All");
 
+  const [
+    createModalOpen,
+    setCreateModalOpen,
+  ] = useState(false);
+
+  const currentUser =
+    useAuthStore(
+      (state) => state.user
+    );
+
+  const isAdmin =
+    currentUser?.role === "Admin";
+
+  // LOAD USERS
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response =
+        await apiClient.get<
+          UserListItem[]
+        >("/users");
+
+      setUsers(response.data);
+    } catch (error) {
+      console.error(
+        "Error loading users:",
+        error
+      );
+
+      setError(
+        "Unable to load users."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response =
-          await apiClient.get<
-            UserListItem[]
-          >("/users");
-
-        setUsers(response.data);
-      } catch (error) {
-        console.error(
-          "Error loading users:",
-          error
-        );
-
-        setError(
-          "Unable to load users."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadUsers();
   }, []);
 
+  // FILTER USERS
   const filteredUsers =
     useMemo(() => {
       const normalizedSearch =
@@ -74,38 +93,41 @@ export default function UsersPage() {
           .trim()
           .toLowerCase();
 
-      return users.filter((user) => {
-        const matchesSearch =
-          !normalizedSearch ||
-          user.fullName
-            .toLowerCase()
-            .includes(
-              normalizedSearch
-            ) ||
-          user.email
-            .toLowerCase()
-            .includes(
-              normalizedSearch
-            );
+      return users.filter(
+        (user) => {
+          const matchesSearch =
+            !normalizedSearch ||
+            user.fullName
+              .toLowerCase()
+              .includes(
+                normalizedSearch
+              ) ||
+            user.email
+              .toLowerCase()
+              .includes(
+                normalizedSearch
+              );
 
-        const matchesRole =
-          roleFilter === "All" ||
-          user.role === roleFilter;
+          const matchesRole =
+            roleFilter === "All" ||
+            user.role === roleFilter;
 
-        const matchesStatus =
-          statusFilter === "All" ||
-          (statusFilter === "Active" &&
-            user.isActive) ||
-          (statusFilter ===
-            "Inactive" &&
-            !user.isActive);
+          const matchesStatus =
+            statusFilter === "All" ||
+            (statusFilter ===
+              "Active" &&
+              user.isActive) ||
+            (statusFilter ===
+              "Inactive" &&
+              !user.isActive);
 
-        return (
-          matchesSearch &&
-          matchesRole &&
-          matchesStatus
-        );
-      });
+          return (
+            matchesSearch &&
+            matchesRole &&
+            matchesStatus
+          );
+        }
+      );
     }, [
       users,
       search,
@@ -113,9 +135,11 @@ export default function UsersPage() {
       statusFilter,
     ]);
 
+  // STATS
   const activeCount =
     users.filter(
-      (user) => user.isActive
+      (user) =>
+        user.isActive
     ).length;
 
   const agentCount =
@@ -134,14 +158,35 @@ export default function UsersPage() {
     <div className="min-h-[calc(100vh-64px)] bg-[#f8f9ff] p-4 md:p-6">
       <div className="mx-auto max-w-[1400px]">
 
-        <div className="mb-8">
-          <h1 className="font-heading text-3xl font-semibold tracking-tight text-[#0f172a]">
-            Users
-          </h1>
+        {/* HEADER */}
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
-          <p className="mt-2 text-sm text-[#64748b]">
-            View and manage SupportOps users.
-          </p>
+          <div>
+            <h1 className="font-heading text-3xl font-semibold tracking-tight text-[#0f172a]">
+              Users
+            </h1>
+
+            <p className="mt-2 text-sm text-[#64748b]">
+              View and manage SupportOps users.
+            </p>
+          </div>
+
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() =>
+                setCreateModalOpen(
+                  true
+                )
+              }
+              className="flex items-center justify-center gap-2 rounded-lg bg-[#4648d4] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3d3fc2]"
+            >
+              <Plus size={18} />
+
+              Create User
+            </button>
+          )}
+
         </div>
 
         {/* STATS */}
@@ -173,6 +218,7 @@ export default function UsersPage() {
 
         </div>
 
+        {/* USERS TABLE */}
         <section className="rounded-2xl border border-[#e2e8f0] bg-white shadow-[0_4px_12px_rgba(15,23,42,0.02)]">
 
           {/* FILTERS */}
@@ -180,7 +226,9 @@ export default function UsersPage() {
 
             <div className="flex flex-col gap-4 lg:flex-row">
 
+              {/* SEARCH */}
               <div className="relative flex-1">
+
                 <Search
                   size={18}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]"
@@ -189,19 +237,26 @@ export default function UsersPage() {
                 <input
                   type="text"
                   value={search}
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setSearch(
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                   placeholder="Search by name or email..."
                   className="w-full rounded-lg border border-[#e2e8f0] bg-white py-2.5 pl-10 pr-4 text-sm text-[#0f172a] outline-none transition focus:border-[#4648d4] focus:ring-4 focus:ring-[#4648d4]/10"
                 />
+
               </div>
 
+              {/* ROLE FILTER */}
               <select
                 value={roleFilter}
-                onChange={(event) =>
+                onChange={(
+                  event
+                ) =>
                   setRoleFilter(
                     event.target
                       .value as
@@ -228,9 +283,12 @@ export default function UsersPage() {
                 </option>
               </select>
 
+              {/* STATUS FILTER */}
               <select
                 value={statusFilter}
-                onChange={(event) =>
+                onChange={(
+                  event
+                ) =>
                   setStatusFilter(
                     event.target
                       .value as
@@ -257,17 +315,22 @@ export default function UsersPage() {
             </div>
           </div>
 
-          {/* CONTENT */}
+          {/* LOADING */}
           {loading ? (
             <div className="p-12 text-center text-sm text-[#64748b]">
               Loading users...
             </div>
           ) : error ? (
+
+            /* ERROR */
             <div className="p-12 text-center text-sm text-red-600">
               {error}
             </div>
+
           ) : filteredUsers.length ===
             0 ? (
+
+            /* EMPTY */
             <div className="p-12 text-center">
 
               <Users
@@ -280,12 +343,15 @@ export default function UsersPage() {
               </p>
 
               <p className="mt-1 text-sm text-[#94a3b8]">
-                Try changing the search
-                or filters.
+                Try changing the
+                search or filters.
               </p>
 
             </div>
+
           ) : (
+
+            /* TABLE */
             <div className="overflow-x-auto">
 
               <table className="w-full">
@@ -320,6 +386,7 @@ export default function UsersPage() {
                         className="border-b border-[#eef2f7] last:border-0 transition hover:bg-[#f8f9ff]"
                       >
 
+                        {/* USER */}
                         <td className="px-6 py-5">
 
                           <div className="flex items-center gap-3">
@@ -331,6 +398,7 @@ export default function UsersPage() {
                             </div>
 
                             <div>
+
                               <p className="font-medium text-[#0f172a]">
                                 {
                                   user.fullName
@@ -342,29 +410,38 @@ export default function UsersPage() {
                                   user.email
                                 }
                               </p>
+
                             </div>
 
                           </div>
 
                         </td>
 
+                        {/* ROLE */}
                         <td className="px-6 py-5">
+
                           <RoleBadge
                             role={
                               user.role
                             }
                           />
+
                         </td>
 
+                        {/* STATUS */}
                         <td className="px-6 py-5">
+
                           <StatusBadge
                             isActive={
                               user.isActive
                             }
                           />
+
                         </td>
 
+                        {/* ID */}
                         <td className="px-6 py-5">
+
                           <span className="font-mono text-xs text-[#94a3b8]">
                             {user.id
                               .slice(
@@ -373,6 +450,7 @@ export default function UsersPage() {
                               )
                               .toUpperCase()}
                           </span>
+
                         </td>
 
                       </tr>
@@ -385,20 +463,36 @@ export default function UsersPage() {
             </div>
           )}
 
+          {/* FOOTER */}
           {!loading &&
             !error && (
               <div className="border-t border-[#e2e8f0] px-6 py-4 text-sm text-[#64748b]">
+
                 Showing{" "}
                 {
                   filteredUsers.length
                 }{" "}
-                of {users.length} users
+                of{" "}
+                {users.length} users
+
               </div>
             )}
 
         </section>
 
       </div>
+
+      {/* CREATE USER MODAL */}
+      <CreateUserModal
+        open={createModalOpen}
+        onClose={() =>
+          setCreateModalOpen(
+            false
+          )
+        }
+        onCreated={loadUsers}
+      />
+
     </div>
   );
 }
@@ -418,6 +512,7 @@ function StatCard({
       <div className="flex items-center justify-between">
 
         <div>
+
           <p className="text-sm font-medium text-[#64748b]">
             {label}
           </p>
@@ -425,6 +520,7 @@ function StatCard({
           <p className="mt-2 text-2xl font-semibold text-[#0f172a]">
             {value}
           </p>
+
         </div>
 
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e1e0ff] text-[#4648d4]">
@@ -471,6 +567,7 @@ function StatusBadge({
           : "bg-red-100 text-red-700"
       }`}
     >
+
       {isActive ? (
         <UserCheck size={13} />
       ) : (
@@ -480,6 +577,7 @@ function StatusBadge({
       {isActive
         ? "Active"
         : "Inactive"}
+
     </span>
   );
 }
@@ -490,7 +588,10 @@ function getInitials(
   return fullName
     .trim()
     .split(/\s+/)
-    .map((part) => part[0])
+    .map(
+      (part) =>
+        part[0]
+    )
     .slice(0, 2)
     .join("")
     .toUpperCase();

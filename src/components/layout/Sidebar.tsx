@@ -88,10 +88,19 @@ export default function Sidebar() {
           Settings
         </button>
 
-        <button className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium text-[#475569] transition hover:bg-[#eff4ff]">
-          <User size={20} />
-          Profile
-        </button>
+  <NavLink
+  to="/profile"
+  className={({ isActive }) =>
+    `flex w-full items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium transition ${
+      isActive
+        ? "bg-[#dce9ff] text-[#4648d4]"
+        : "text-[#475569] hover:bg-[#eff4ff]"
+    }`
+  }
+>
+  <User size={20} />
+  Profile
+</NavLink>
 
         <button
           onClick={logout}

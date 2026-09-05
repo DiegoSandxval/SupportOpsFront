@@ -16,3 +16,18 @@ export interface UserListItem {
   role: UserRole;
   isActive: boolean;
 }
+
+export interface CreateUserRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role: UserRole;
+}
+
+export interface CreateUserResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  role: UserRole;
+}
